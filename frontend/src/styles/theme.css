@@ -1,0 +1,28 @@
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f5f2ea;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+header, footer {
+  background-color: #a67c52;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+}
+main {
+  padding: 2rem;
+  text-align: center;
+}
+button {
+  background: #a67c52;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button:hover {
+  background: #8a653d;
+}
