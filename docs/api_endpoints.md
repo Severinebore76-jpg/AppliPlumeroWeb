@@ -1,6 +1,6 @@
-# **📚 API — Romans & Comments**
+# 📚 API — Romans & Comments
 
-## **⚙️ Structure REST complète**
+## ⚙️ Structure REST complète
 
 ```bash
 /api
@@ -20,28 +20,33 @@
 │          ├── DELETE /:id     → Supprimer un commentaire (owner/admin)
 │
 └── /health                    → Vérifie l’état du serveur (ping API)
-```
 
----
+🧩 Middleware
 
-## **🧩 Middleware**
+Route
+Middleware appliqué
+Description
+POST /api/romans
+protect
+Requiert un utilisateur connecté
+PUT /api/romans/:id
+protect
+Owner ou admin uniquement
+DELETE /api/romans/:id
+protect
+Owner ou admin uniquement
+POST /api/romans/:romanId/comments
+protect
+Authentification obligatoire
+PUT /api/romans/:romanId/comments/:id
+protect
+Owner ou admin
+DELETE /api/romans/:romanId/comments/:id
+protect
+Owner ou admin
 
-| **Route**                                | **Middleware appliqué** | **Description**                  |
-| ---------------------------------------- | ----------------------- | -------------------------------- |
-| POST /api/romans                         | protect                 | Requiert un utilisateur connecté |
-| PUT /api/romans/:id                      | protect                 | Owner ou admin uniquement        |
-| DELETE /api/romans/:id                   | protect                 | Owner ou admin uniquement        |
-| POST /api/romans/:romanId/comments       | protect                 | Authentification obligatoire     |
-| PUT /api/romans/:romanId/comments/:id    | protect                 | Owner ou admin                   |
-| DELETE /api/romans/:romanId/comments/:id | protect                 | Owner ou admin                   |
-
----
-
-## **💬 Exemples de requêtes**
-
-### **➕ Créer un roman**
-
-```bash
+💬 Exemples de requêtes
+➕ Créer un roman
 POST /api/romans
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -52,13 +57,8 @@ Content-Type: application/json
   "tags": ["mystère", "drame"],
   "status": "draft"
 }
-```
 
----
-
-### **💬 Ajouter un commentaire**
-
-```bash
+💬 Ajouter un commentaire
 POST /api/romans/66f32df2a8b7d9e4a/comments
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -66,20 +66,11 @@ Content-Type: application/json
 {
   "text": "J’ai adoré ce passage, l’ambiance est incroyable."
 }
-```
+🔎 Lister les commentaires d’un roman
 
----
+GET /api/romans/66f32df2a8b7d9e4a/comments?page=1&limit=10.
 
-### **🔎 Lister les commentaires d’un roman**
-
-```bash
-GET /api/romans/66f32df2a8b7d9e4a/comments?page=1&limit=10
-```
-
-Réponse :
-
-```json
-{
+Réponse {
   "results": [
     {
       "_id": "66f342ccafc1b2b5d1",
@@ -93,15 +84,16 @@ Réponse :
   "total": 34,
   "totalPages": 4
 }
+
+⸻
+
+✅ En résumé
+• Romans → entité principale (contenu littéraire).
+• Comments → sous-ressource dépendante de Roman.
+• Structure REST hiérarchisée et extensible.
+• Pagination, modération, sécurité et cohérence entre modules.
+
+⸻
+
+© 2025 – AppliPlumeroWeb | Documentation technique interne
 ```
-
----
-
-## **✅ En résumé**
-
-- Romans → entité principale (contenu littéraire).
-- Comments → sous-ressource dépendante de Roman.
-- Structure REST hiérarchisée et extensible.
-- Pagination, modération, sécurité et cohérence entre modules.
-
----
