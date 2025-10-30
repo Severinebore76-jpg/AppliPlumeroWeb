@@ -38,7 +38,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/romans", romanRoutes);
 app.use("/api/comments", commentRoutes);
 
-// Gestion d’erreurs centrale
+// --- Gestion des erreurs ---
 app.use(errorHandler);
 
 // --- Lancement du serveur ---

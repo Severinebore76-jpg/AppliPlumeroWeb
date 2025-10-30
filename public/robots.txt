@@ -1,0 +1,9 @@
+# 🤖 Robots.txt — Appli Plumero
+# Gestion de l'exploration par les moteurs de recherche
+
+User-agent: *        → tous les moteurs (Google, Bing, etc.)
+Disallow: /api/      → interdit l’exploration des endpoints backend
+Disallow: /admin/    → interdit les pages d’administration
+Allow: /             → autorise tout le reste (le site public)
+
+Sitemap: https://plumero.com/sitemap.xml

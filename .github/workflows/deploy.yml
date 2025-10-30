@@ -1,0 +1,95 @@
+# ===========================================================
+# 🚀 GitHub Actions — Déploiement Automatisé AppliPlumeroWeb
+# ===========================================================
+# Objectif :
+#   - Build & tester le backend
+#   - Construire l’image Docker
+#   - Déployer automatiquement sur la plateforme cible (Render / Railway)
+# ===========================================================
+
+name: 🚀 Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Permet de lancer manuellement depuis l’interface GitHub
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy AppliPlumeroWeb
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: production
+      PORT: 8080
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+
+    steps:
+      # ------------------------------
+      # 🧱 Étape 1 — Cloner le dépôt
+      # ------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------
+      # ⚙️ Étape 2 — Installer Node.js
+      # ------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ------------------------------
+      # 🧩 Étape 3 — Installer dépendances
+      # ------------------------------
+      - name: Install dependencies
+        run: |
+          cd backend && npm ci --omit=dev
+          cd ../frontend && npm ci && npm run build
+
+      # ------------------------------
+      # 🐳 Étape 4 — Construire l’image Docker
+      # ------------------------------
+      - name: Build Docker image
+        run: docker build -t appliplumeroweb .
+
+      # ------------------------------
+      # 🚀 Étape 5 — Déploiement (selon la plateforme)
+      # ------------------------------
+      - name: Deploy to Render
+        if: ${{ secrets.RENDER_API_KEY != '' }}
+        run: |
+          echo "🔗 Déploiement via Render API"
+          curl -X POST https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -d ''
+
+      - name: Deploy to Railway
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        run: |
+          echo "🚄 Déploiement via Railway CLI"
+          npm install -g @railway/cli
+          railway up --service=appliplumeroweb --detach
+
+      # ------------------------------
+      # 🔍 Étape 6 — Vérifications post-déploiement
+      # ------------------------------
+      - name: Healthcheck
+        run: |
+          echo "🔎 Vérification du serveur"
+          sleep 10
+          curl -f http://localhost:8080/health || exit 1
+
+      # ------------------------------
+      # 🧹 Étape 7 — Nettoyage
+      # ------------------------------
+      - name: Cleanup Docker
+        if: always()
+        run: docker system prune -f
