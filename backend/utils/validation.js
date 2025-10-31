@@ -17,13 +17,13 @@ export const romanCreateSchema = Joi.object({
         title: Joi.string().required(),
         content: Joi.string().required(),
         order: Joi.number().integer().min(0).default(0),
-      })
+      }),
     )
     .default([]),
 });
 
 export const romanUpdateSchema = romanCreateSchema.fork(["title"], (schema) =>
-  schema.optional()
+  schema.optional(),
 );
 
 // Comment
@@ -33,9 +33,10 @@ export const commentCreateSchema = Joi.object({
 
 export const commentUpdateSchema = Joi.object({
   text: Joi.string().min(1).max(2000),
-  status: Joi.string().valid("pending", "approved", "rejected"), // admin
+  status: Joi.string().valid("pending", "approved", "rejected"),
 }).min(1);
 
+// Auth
 export const registerSchema = Joi.object({
   name: Joi.string().min(2).max(80).required(),
   email: Joi.string().email().required(),
@@ -47,6 +48,7 @@ export const loginSchema = Joi.object({
   password: Joi.string().min(8).max(128).required(),
 });
 
+// User
 export const updateMeSchema = Joi.object({
   name: Joi.string().min(2).max(80),
   avatarUrl: Joi.string().uri().allow("", null),

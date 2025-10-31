@@ -1,26 +1,29 @@
 // backend/routes/romans.js
-// 🔹 Routes principales pour la gestion des romans et leurs commentaires associés
 import express from "express";
-import { protect } from "../middleware/authMiddleware.js";
 import {
-  create,
-  list,
-  getBySlug,
-  update,
-  remove,
+  createRoman,
+  getRomanBySlug,
+  getAllRomans,
+  updateRoman,
+  deleteRoman,
 } from "../controllers/romansController.js";
-import commentRoutes from "./comments.js"; // 🔹 on importe les routes de commentaires
+import { protect } from "../middleware/authMiddleware.js";
+import { validateRequest } from "../middleware/validateRequest.js";
+import { romanCreateSchema, romanUpdateSchema } from "../utils/validation.js";
+import commentsRouter from "./comments.js";
 
 const router = express.Router();
 
-// --- Routes principales ---
-router.get("/", list); // 🔹 Liste des romans
-router.get("/:slug", getBySlug); // 🔹 Détail d’un roman via slug
-router.post("/", protect, create); // 🔹 Créer un roman
-router.put("/:id", protect, update); // 🔹 Modifier un roman
-router.delete("/:id", protect, remove); // 🔹 Supprimer un roman
+// 🔹 Routes publiques
+router.get("/", getAllRomans);
+router.get("/:slug", getRomanBySlug);
 
-// --- Sous-route : commentaires liés à un roman ---
-router.use("/:romanId/comments", commentRoutes); // 🔹 Imbrique les routes commentaires
+// 🔹 Routes protégées (authentifiées)
+router.post("/", protect, validateRequest(romanCreateSchema), createRoman);
+router.put("/:id", protect, validateRequest(romanUpdateSchema), updateRoman);
+router.delete("/:id", protect, deleteRoman);
+
+// 🔹 Sous-route : commentaires d’un roman
+router.use("/:romanId/comments", commentsRouter);
 
 export default router;

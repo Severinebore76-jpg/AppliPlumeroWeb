@@ -1,24 +1,27 @@
 // backend/routes/comments.js
-// 🔹 Routes pour la gestion des commentaires (création, lecture, modération)
 import express from "express";
-import { protect, requireRole } from "../middleware/authMiddleware.js";
 import {
-  create,
-  list,
-  update,
-  remove,
+  createComment,
+  getCommentsByRoman,
+  updateComment,
+  deleteComment,
 } from "../controllers/commentsController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import { validateRequest } from "../middleware/validateRequest.js";
+import {
+  commentCreateSchema,
+  commentUpdateSchema,
+} from "../utils/validation.js";
 
 const router = express.Router({ mergeParams: true });
 
-// --- Routes publiques ---
-router.get("/:romanId", list); // 🔹 Liste des commentaires d'un roman (modérés uniquement)
+// 🔹 Lecture publique
+router.get("/", getCommentsByRoman);
 
-// --- Routes protégées (user connecté) ---
-router.post("/:romanId", protect, create); // 🔹 Ajouter un commentaire
-
-// --- Routes de gestion/modération ---
-router.put("/:id", protect, update); // 🔹 Modifier son commentaire (ou admin pour modération)
-router.delete("/:id", protect, remove); // 🔹 Supprimer son commentaire (ou admin)
+// 🔹 Routes protégées
+router.use(protect);
+router.post("/", validateRequest(commentCreateSchema), createComment);
+router.put("/:id", validateRequest(commentUpdateSchema), updateComment);
+router.delete("/:id", deleteComment);
 
 export default router;

@@ -1,6 +1,6 @@
 import {
   createComment,
-  listComments,
+  getCommentsByRoman,
   updateComment,
   deleteComment,
 } from "../services/commentService.js";
@@ -10,11 +10,9 @@ import {
 } from "../utils/validation.js";
 import { createError } from "../utils/errorResponse.js";
 
-// ➤ Créer un commentaire
+// ➕ Ajouter un commentaire à un roman
 export const create = async (req, res, next) => {
   try {
-    if (!req.user?._id) throw createError(401, "Authentification requise");
-
     const { error, value } = commentCreateSchema.validate(req.body, {
       abortEarly: false,
     });
@@ -23,30 +21,27 @@ export const create = async (req, res, next) => {
     const comment = await createComment(
       req.params.romanId,
       req.user._id,
-      value.text
+      value.text,
     );
-    res.status(201).json(comment);
+    res.status(201).json({ success: true, comment });
   } catch (err) {
     next(err);
   }
 };
 
-// ➤ Liste paginée des commentaires d’un roman
+// 📋 Lister les commentaires d’un roman
 export const list = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const data = await listComments(
-      req.params.romanId,
-      Number(page || 1),
-      Number(limit || 20)
-    );
-    res.json(data);
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+    const comments = await getCommentsByRoman(req.params.romanId, page, limit);
+    res.json({ page, limit, results: comments });
   } catch (err) {
     next(err);
   }
 };
 
-// ➤ Mise à jour
+// ✏️ Modifier un commentaire
 export const update = async (req, res, next) => {
   try {
     const { error, value } = commentUpdateSchema.validate(req.body, {
@@ -54,14 +49,14 @@ export const update = async (req, res, next) => {
     });
     if (error) throw createError(400, "Données invalides", error.details);
 
-    const comment = await updateComment(req.params.id, req.user, value);
-    res.json(comment);
+    const updated = await updateComment(req.params.id, req.user, value);
+    res.json(updated);
   } catch (err) {
     next(err);
   }
 };
 
-// ➤ Suppression
+// 🗑️ Supprimer un commentaire
 export const remove = async (req, res, next) => {
   try {
     await deleteComment(req.params.id, req.user);

@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema(
     avatarUrl: { type: String, default: "" },
     lastLoginAt: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash mot de passe avant save si modifié

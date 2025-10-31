@@ -1,68 +1,63 @@
-import { checkOwnershipOrAdmin } from "../utils/permissions.js";
 import Comment from "../models/Comment.js";
+import Roman from "../models/Roman.js";
+import { createError } from "../utils/errorResponse.js";
+import { checkOwnershipOrAdmin } from "../utils/permissions.js";
 
-// ➤ Création d’un commentaire
-export const createComment = async (romanId, authorId, text) => {
-  if (!text || text.trim().length < 2) {
-    const err = new Error("Le commentaire est trop court");
-    err.statusCode = 400;
-    throw err;
-  }
+// 🧩 Créer un commentaire lié à un roman
+export const createComment = async (romanId, user, data) => {
+  const roman = await Roman.findById(romanId);
+  if (!roman) throw createError(404, "Roman introuvable");
 
-  return Comment.create({ roman: romanId, author: authorId, text });
-};
+  const comment = await Comment.create({
+    roman: roman._id,
+    author: user._id,
+    text: data.text,
+  });
 
-// ➤ Liste paginée des commentaires approuvés
-export const listComments = async (romanId, page = 1, limit = 20) => {
-  const skip = (page - 1) * limit;
-
-  const [items, total] = await Promise.all([
-    Comment.find({ roman: romanId, status: "approved" })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("author", "name"),
-    Comment.countDocuments({ roman: romanId, status: "approved" }),
-  ]);
-
-  return {
-    results: items,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-};
-
-// ➤ Mise à jour (modération incluse)
-export const updateComment = async (id, user, data) => {
-  const comment = await Comment.findById(id);
-  if (!comment) {
-    const err = new Error("Commentaire introuvable");
-    err.statusCode = 404;
-    throw err;
-  }
-
-  checkOwnershipOrAdmin(comment, user);
-
-  if (data.text !== undefined) comment.text = data.text;
-  if (user.role === "admin" && data.status) comment.status = data.status;
-
-  await comment.save();
   return comment;
 };
 
-// ➤ Suppression
+// 🔍 Lister les commentaires d’un roman (paginés, statut = approved)
+export const listComments = async (romanId, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+
+  const comments = await Comment.find({
+    roman: romanId,
+    status: "approved",
+  })
+    .populate("author", "name avatarUrl")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Comment.countDocuments({
+    roman: romanId,
+    status: "approved",
+  });
+
+  return { comments, total, page, totalPages: Math.ceil(total / limit) };
+};
+
+// ✏️ Modifier un commentaire (owner/admin)
+export const updateComment = async (id, user, updates) => {
+  const comment = await Comment.findById(id);
+  if (!comment) throw createError(404, "Commentaire introuvable");
+
+  checkOwnershipOrAdmin(comment, user);
+
+  Object.assign(comment, updates);
+  await comment.save();
+
+  return comment;
+};
+
+// ❌ Supprimer un commentaire (owner/admin)
 export const deleteComment = async (id, user) => {
   const comment = await Comment.findById(id);
-  if (!comment) {
-    const err = new Error("Commentaire introuvable");
-    err.statusCode = 404;
-    throw err;
-  }
+  if (!comment) throw createError(404, "Commentaire introuvable");
 
   checkOwnershipOrAdmin(comment, user);
 
   await comment.deleteOne();
-  return true;
+  return { message: "Commentaire supprimé avec succès" };
 };

@@ -1,21 +1,32 @@
-// backend/middleware/errorHandler.js
+// ============================================
+// 📁 backend/middleware/errorHandler.js
+// Middleware global de gestion des erreurs
+// ============================================
 
-// 🧩 Middleware de gestion d'erreurs global
+import { STATUS_CODES } from "../constants/statusCodes.js";
+import { ERROR_MESSAGES } from "../constants/errorMessages.js";
+
 export const errorHandler = (err, req, res, next) => {
-  // Log complet côté serveur
+  // --- Journalisation serveur ---
   console.error("❌ Error:", err.stack || err.message);
 
-  // Code de statut HTTP (par défaut 500)
-  const statusCode = err.statusCode || 500;
+  // --- Statut HTTP par défaut ---
+  const statusCode = err.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR;
 
-  // Réponse d'erreur normalisée
+  // --- Message cohérent ---
+  const message =
+    err.message && typeof err.message === "string"
+      ? err.message
+      : ERROR_MESSAGES.INTERNAL_ERROR;
+
+  // --- Structure de réponse unifiée ---
   const errorResponse = {
     success: false,
     status: statusCode,
-    message: err.message || "Erreur serveur interne",
+    message,
   };
 
-  // Si des détails existent (ex: validation Joi)
+  // --- Détails optionnels (validation Joi, etc.) ---
   if (err.details) {
     errorResponse.details = Array.isArray(err.details)
       ? err.details.map((d) => ({
@@ -25,10 +36,11 @@ export const errorHandler = (err, req, res, next) => {
       : err.details;
   }
 
-  // Inclure la stack uniquement en dev
+  // --- Stack visible uniquement en développement ---
   if (process.env.NODE_ENV === "development") {
     errorResponse.stack = err.stack;
   }
 
+  // --- Envoi de la réponse ---
   res.status(statusCode).json(errorResponse);
 };

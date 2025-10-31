@@ -1,11 +1,18 @@
+// backend/routes/users.js
 import express from "express";
 import { list, getOne, updateMe } from "../controllers/usersController.js";
 import { protect, requireRole } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", protect, requireRole("admin"), list);
-router.get("/:id", protect, requireRole("admin"), getOne);
-router.put("/me", protect, updateMe);
+// 🔹 Routes publiques
+router.get("/:id", getOne);
 
-module.exports = router;
+// 🔹 Routes protégées
+router.use(protect);
+router.put("/me", updateMe);
+
+// 🔹 Routes admin uniquement
+router.get("/", requireRole("admin"), list);
+
+export default router;
