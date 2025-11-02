@@ -1,8 +1,8 @@
 import {
-  createComment,
-  getCommentsByRoman,
-  updateComment,
-  deleteComment,
+  createComment as serviceCreateComment,
+  getCommentsByRoman as serviceGetCommentsByRoman,
+  updateComment as serviceUpdateComment,
+  deleteComment as serviceDeleteComment,
 } from "../services/commentService.js";
 import {
   commentCreateSchema,
@@ -11,17 +11,17 @@ import {
 import { createError } from "../utils/errorResponse.js";
 
 // ➕ Ajouter un commentaire à un roman
-export const create = async (req, res, next) => {
+export const createComment = async (req, res, next) => {
   try {
     const { error, value } = commentCreateSchema.validate(req.body, {
       abortEarly: false,
     });
     if (error) throw createError(400, "Données invalides", error.details);
 
-    const comment = await createComment(
+    const comment = await serviceCreateComment(
       req.params.romanId,
-      req.user._id,
-      value.text,
+      req.user,
+      value,
     );
     res.status(201).json({ success: true, comment });
   } catch (err) {
@@ -30,11 +30,15 @@ export const create = async (req, res, next) => {
 };
 
 // 📋 Lister les commentaires d’un roman
-export const list = async (req, res, next) => {
+export const getCommentsByRoman = async (req, res, next) => {
   try {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 10);
-    const comments = await getCommentsByRoman(req.params.romanId, page, limit);
+    const comments = await serviceGetCommentsByRoman(
+      req.params.romanId,
+      page,
+      limit,
+    );
     res.json({ page, limit, results: comments });
   } catch (err) {
     next(err);
@@ -42,14 +46,14 @@ export const list = async (req, res, next) => {
 };
 
 // ✏️ Modifier un commentaire
-export const update = async (req, res, next) => {
+export const updateComment = async (req, res, next) => {
   try {
     const { error, value } = commentUpdateSchema.validate(req.body, {
       abortEarly: false,
     });
     if (error) throw createError(400, "Données invalides", error.details);
 
-    const updated = await updateComment(req.params.id, req.user, value);
+    const updated = await serviceUpdateComment(req.params.id, req.user, value);
     res.json(updated);
   } catch (err) {
     next(err);
@@ -57,9 +61,9 @@ export const update = async (req, res, next) => {
 };
 
 // 🗑️ Supprimer un commentaire
-export const remove = async (req, res, next) => {
+export const deleteComment = async (req, res, next) => {
   try {
-    await deleteComment(req.params.id, req.user);
+    await serviceDeleteComment(req.params.id, req.user);
     res.status(204).send();
   } catch (err) {
     next(err);

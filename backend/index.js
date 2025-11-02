@@ -18,6 +18,10 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import romanRoutes from "./routes/romans.js";
 import commentRoutes from "./routes/comments.js";
+import paymentRoutes from "./routes/payments.js";
+
+// --- Import des jobs planifiés ---
+import notificationJob from "./jobs/notificationJob.js";
 
 dotenv.config();
 
@@ -26,7 +30,7 @@ connectDB();
 
 const app = express();
 
-// Sécurité : en-têtes HTTP + Helmet
+// --- Sécurité : en-têtes HTTP + Helmet ---
 securityHeaders(app);
 app.use(helmet());
 
@@ -37,9 +41,10 @@ app.use(morgan("dev"));
 
 // --- Route de test santé ---
 app.get("/api/health", (req, res) => {
-  res
-    .status(200)
-    .json({ status: "ok", message: "API AppliPlumeroWeb running" });
+  res.status(200).json({
+    status: "ok",
+    message: "API AppliPlumeroWeb running",
+  });
 });
 
 // --- Routes principales ---
@@ -47,6 +52,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/romans", romanRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // --- Gestion des erreurs ---
 app.use(notFoundHandler); // <--- gère les routes inexistantes
@@ -54,4 +60,13 @@ app.use(errorHandler);
 
 // --- Lancement du serveur ---
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
+// ✅ Ne lance le serveur que hors mode test (Jest)
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+}
+// --- Démarrage des tâches planifiées ---
+notificationJob.start(); // ✅ Ajout Phase 3.4 : exécution automatique du job de notifications
+
+// ✅ Export pour Jest / Supertest (Phase 2.5)
+export default app;

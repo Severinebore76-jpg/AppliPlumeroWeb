@@ -1,82 +1,70 @@
+// backend/controllers/romansController.js
 import {
-  createRoman,
-  listRomans,
-  getRomanBySlug,
-  updateRoman,
-  deleteRoman,
+  createRoman as serviceCreateRoman,
+  getRomanBySlug as serviceGetRomanBySlug,
+  getAllRomans as serviceGetAllRomans,
+  updateRoman as serviceUpdateRoman,
+  deleteRoman as serviceDeleteRoman,
+  getPremiumChapters as serviceGetPremiumChapters,
 } from "../services/romanService.js";
-import { romanCreateSchema, romanUpdateSchema } from "../utils/validation.js";
+import { createError } from "../utils/errorResponse.js";
 
-export const create = async (req, res, next) => {
+// ➕ Créer un roman
+export const createRoman = async (req, res, next) => {
   try {
-    const { error, value } = romanCreateSchema.validate(req.body, {
-      abortEarly: false,
-    });
-    if (error) {
-      const err = new Error("Données invalides");
-      err.statusCode = 400;
-      err.details = error.details;
-      throw err;
-    }
-    const roman = await createRoman(value, req.user._id);
+    const roman = await serviceCreateRoman(req.body, req.user);
     res.status(201).json(roman);
   } catch (err) {
     next(err);
   }
 };
 
-export const list = async (req, res, next) => {
+// 📜 Récupérer tous les romans
+export const getAllRomans = async (req, res, next) => {
   try {
-    const { q, status, author, page, limit } = req.query;
-    const data = await listRomans({
-      q,
-      status,
-      author,
-      page: Number(page || 1),
-      limit: Number(limit || 20),
-    });
-    res.json(data);
+    const romans = await serviceGetAllRomans();
+    res.json(romans);
   } catch (err) {
     next(err);
   }
 };
 
-export const getBySlug = async (req, res, next) => {
+// 🔍 Récupérer un roman par slug
+export const getRomanBySlug = async (req, res, next) => {
   try {
-    const roman = await getRomanBySlug(req.params.slug);
-    if (!roman) {
-      const err = new Error("Roman introuvable");
-      err.statusCode = 404;
-      throw err;
-    }
+    const roman = await serviceGetRomanBySlug(req.params.slug);
+    if (!roman) throw createError(404, "Roman introuvable");
     res.json(roman);
   } catch (err) {
     next(err);
   }
 };
 
-export const update = async (req, res, next) => {
+// ✏️ Mettre à jour un roman
+export const updateRoman = async (req, res, next) => {
   try {
-    const { error, value } = romanUpdateSchema.validate(req.body, {
-      abortEarly: false,
-    });
-    if (error) {
-      const err = new Error("Données invalides");
-      err.statusCode = 400;
-      err.details = error.details;
-      throw err;
-    }
-    const roman = await updateRoman(req.params.id, req.user, value);
-    res.json(roman);
+    const updated = await serviceUpdateRoman(req.params.id, req.body, req.user);
+    res.json(updated);
   } catch (err) {
     next(err);
   }
 };
 
-export const remove = async (req, res, next) => {
+// 🗑️ Supprimer un roman
+export const deleteRoman = async (req, res, next) => {
   try {
-    await deleteRoman(req.params.id, req.user);
+    await serviceDeleteRoman(req.params.id, req.user);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 💎 Récupérer les chapitres premium d’un roman
+export const getPremiumChapters = async (req, res, next) => {
+  try {
+    const chapters = await serviceGetPremiumChapters(req.params.slug, req.user);
+    res.json(chapters);
   } catch (err) {
     next(err);
   }

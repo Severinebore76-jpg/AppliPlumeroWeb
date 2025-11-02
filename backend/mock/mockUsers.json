@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Séverine Boré",
+    "email": "admin@plumero.com",
+    "password": "$2b$10$abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+    "role": "admin",
+    "isVerified": true,
+    "avatarUrl": "/uploads/avatars/admin.png",
+    "twoFactorEnabled": false
+  },
+  {
+    "name": "Mya Syde",
+    "email": "mya@plumero.com",
+    "password": "$2b$10$abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+    "role": "user",
+    "isVerified": true,
+    "avatarUrl": "/uploads/avatars/mya.png",
+    "twoFactorEnabled": false
+  },
+  {
+    "name": "Lucas Delcourt",
+    "email": "lucas@plumero.com",
+    "password": "$2b$10$abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+    "role": "user",
+    "isVerified": false,
+    "avatarUrl": "/uploads/avatars/lucas.png",
+    "twoFactorEnabled": false
+  }
+]

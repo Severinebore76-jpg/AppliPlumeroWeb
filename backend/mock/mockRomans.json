@@ -1,0 +1,36 @@
+[
+  {
+    "title": "Le Carnet Oublié",
+    "summary": "Mystère entre deux époques et destins croisés.",
+    "tags": ["mystère", "drame", "mémoire"],
+    "coverUrl": "/uploads/carnet_oublie.jpg",
+    "status": "published",
+    "visibility": "public",
+    "isFeatured": true,
+    "author": "66f32df2a8b7d9e4a000001",
+    "chapters": [
+      {
+        "title": "Chapitre 1 — La découverte",
+        "content": "Sous la poussière du grenier, elle trouva un carnet...",
+        "order": 0
+      }
+    ]
+  },
+  {
+    "title": "Nuits sans fin",
+    "summary": "Un blues d’âme perdue entre deux lumières.",
+    "tags": ["blues", "amour", "solitude"],
+    "coverUrl": "/uploads/nuits_sans_fin.jpg",
+    "status": "draft",
+    "visibility": "private",
+    "isFeatured": false,
+    "author": "66f32df2a8b7d9e4a000001",
+    "chapters": [
+      {
+        "title": "Chapitre 1 — La route du silence",
+        "content": "Chaque nuit, elle roulait sans destination...",
+        "order": 0
+      }
+    ]
+  }
+]

@@ -32,6 +32,29 @@ export const generateSecureToken = (size = 32) => {
 };
 
 /**
+ * Génère un code temporaire à 6 chiffres (2FA, validation email, etc.)
+ * @param {number} length - Longueur du code numérique
+ * @returns {string}
+ */
+export const generateVerificationCode = (length = 6) => {
+  return crypto
+    .randomInt(0, 10 ** length)
+    .toString()
+    .padStart(length, "0");
+};
+
+/**
+ * Vérifie si un code est encore valide dans une fenêtre de temps donnée
+ * @param {Date} createdAt - Date de création du code
+ * @param {number} ttl - Durée de vie en secondes (par défaut : 5 minutes)
+ * @returns {boolean}
+ */
+export const isCodeValid = (createdAt, ttl = 300) => {
+  const now = Date.now();
+  return now - new Date(createdAt).getTime() < ttl * 1000;
+};
+
+/**
  * Nettoie une chaîne de caractères pour éviter les injections basiques
  * @param {string} str - Chaîne brute
  * @returns {string} - Chaîne nettoyée

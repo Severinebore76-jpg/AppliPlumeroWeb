@@ -1,0 +1,30 @@
+{
+  "title": "Le Carnet Oublié",
+  "slug": "le-carnet-oublie",
+  "summary": "Entre deux époques, une femme découvre un carnet usé qui renferme les secrets d’une âme disparue…",
+  "tags": ["mystère", "mémoire", "secrets", "drame"],
+  "coverUrl": "/uploads/covers/le-carnet-oublie.jpg",
+  "status": "published",
+  "visibility": "public",
+  "isFeatured": true,
+  "author": "66f32df2a8b7d9e4a000001",
+  "chapters": [
+    {
+      "title": "Chapitre 1 — La découverte",
+      "content": "Dans la poussière d’un grenier oublié, Élise tomba sur un carnet au cuir fané. L’écriture, tremblante et ancienne, semblait l’appeler. Chaque mot réveillait une douleur qu’elle ne comprenait pas encore.",
+      "order": 1
+    },
+    {
+      "title": "Chapitre 2 — Les lettres d’avant",
+      "content": "Les pages racontaient un amour brisé par la guerre, une promesse non tenue, et un silence transmis à travers les générations. Plus Élise lisait, plus elle sentait la présence de celle qui avait écrit ces lignes.",
+      "order": 2
+    }
+  ],
+  "stats": {
+    "reads": 0,
+    "likes": 0,
+    "bookmarks": 0
+  },
+  "createdAt": "2025-10-31T10:00:00Z",
+  "updatedAt": "2025-10-31T10:00:00Z"
+}

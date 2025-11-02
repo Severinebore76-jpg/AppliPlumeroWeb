@@ -61,3 +61,7 @@ export const deleteComment = async (id, user) => {
   await comment.deleteOne();
   return { message: "Commentaire supprimé avec succès" };
 };
+// ✅ Compatibilité : alias pour listComments
+export const getCommentsByRoman = async (romanId) => {
+  return await listComments(romanId);
+};

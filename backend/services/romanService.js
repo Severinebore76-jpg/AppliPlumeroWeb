@@ -1,4 +1,4 @@
-import Roman from "../models/Romans.js";
+import Roman from "../models/Roman.js";
 import slugify from "../utils/slugify.js";
 import { checkOwnershipOrAdmin } from "../utils/permissions.js";
 
@@ -15,13 +15,13 @@ export const createRoman = async (payload, authorId) => {
 };
 
 // ➤ Liste (avec pagination, recherche, filtrage)
-export const listRomans = async ({
+export const getAllRomans = async ({
   q,
   status,
   author,
   page = 1,
   limit = 20,
-}) => {
+} = {}) => {
   const filter = {};
   if (q) filter.$text = { $search: q };
   if (status) filter.status = status;
@@ -100,7 +100,24 @@ export const deleteRoman = async (id, user) => {
   }
 
   checkOwnershipOrAdmin(roman, user);
-
   await roman.deleteOne();
   return true;
+};
+
+// 💎 Chapitres premium
+export const getPremiumChapters = async (slug, user) => {
+  const roman = await Roman.findOne({ slug });
+  if (!roman) {
+    const err = new Error("Roman introuvable");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (!user || user.role !== "premium") {
+    const err = new Error("Accès réservé aux abonnés premium.");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  return roman.chapters.filter((chapter) => chapter.isPremium);
 };

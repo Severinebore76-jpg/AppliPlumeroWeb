@@ -7,6 +7,9 @@ import {
 } from "../controllers/notificationsController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
+// --- Sous-routes : notifications push ---
+import pushRoutes from "../notifications/pushRoutes.js";
+
 const router = express.Router();
 
 // Toutes les routes nécessitent une authentification
