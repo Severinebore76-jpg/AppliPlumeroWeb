@@ -1,42 +1,140 @@
+// ============================================================================
+// 📦 Service : userService.js
+// 🔹 Bloc : Phase 2 — Romans, Commentaires & Profils Utilisateurs
+// 🔹 Rôle : Gestion des profils, préférences et statistiques utilisateur
+// ============================================================================
+
 import User from "../models/User.js";
+import Roman from "../models/Roman.js";
+import Comment from "../models/Comment.js";
+import { activityService } from "./activityService.js";
+import { feedbackService } from "./feedbackService.js";
+import { deviceService } from "./deviceService.js";
 
-export const createUser = async ({ name, email, password }) => {
-  const exists = await User.findOne({ email });
-  if (exists) {
-    const err = new Error("Un utilisateur avec cet email existe déjà.");
-    err.statusCode = 409;
-    throw err;
-  }
-  const user = await User.create({ name, email, password });
-  return user;
-};
+/**
+ * Service métier pour la gestion complète des profils utilisateurs
+ */
+export const userService = {
+  /**
+   * 🔵 Récupère le profil public d’un utilisateur
+   */
+  async getPublicProfile(userId) {
+    const user = await User.findById(userId)
+      .select("username bio avatarUrl socialLinks createdAt")
+      .lean();
 
-export const getByEmailWithPassword = (email) =>
-  User.findOne({ email }).select("+password");
+    if (!user) throw new Error("Utilisateur introuvable.");
 
-export const getById = (id) => User.findById(id);
+    const [romanCount, commentCount] = await Promise.all([
+      Roman.countDocuments({ author: userId, isDeleted: false }),
+      Comment.countDocuments({ author: userId, isDeleted: false }),
+    ]);
 
-export const listUsers = (page = 1, limit = 20) => {
-  const skip = (page - 1) * limit;
-  return User.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
-};
+    return { ...user, romanCount, commentCount };
+  },
 
-export const updateUserMe = async (userId, data) => {
-  const allowed = ["name", "avatarUrl", "password"];
-  const toUpdate = {};
-  for (const k of allowed) if (data[k] !== undefined) toUpdate[k] = data[k];
+  /**
+   * 🧭 Récupère le profil complet (privé) pour l’utilisateur connecté
+   */
+  async getPrivateProfile(userId) {
+    const user = await User.findById(userId)
+      .select("-password -refreshToken -__v")
+      .populate("devices", "deviceId os browser active")
+      .lean();
 
-  const user = await User.findById(userId).select("+password");
-  if (!user) {
-    const err = new Error("Utilisateur introuvable");
-    err.statusCode = 404;
-    throw err;
-  }
+    if (!user) throw new Error("Utilisateur introuvable.");
+    return user;
+  },
 
-  if (toUpdate.name !== undefined) user.name = toUpdate.name;
-  if (toUpdate.avatarUrl !== undefined) user.avatarUrl = toUpdate.avatarUrl;
-  if (toUpdate.password !== undefined) user.password = toUpdate.password; // sera hashé par le pre('save')
+  /**
+   * 🟢 Met à jour les informations de profil
+   */
+  async updateProfile(userId, updates) {
+    const user = await User.findById(userId);
+    if (!user) throw new Error("Utilisateur introuvable.");
 
-  await user.save();
-  return user;
+    // Champs protégés
+    const protectedFields = ["email", "password", "role", "createdAt"];
+    for (const field of protectedFields) delete updates[field];
+
+    Object.assign(user, updates);
+    await user.save();
+
+    await activityService.logActivity(
+      userId,
+      "update_profile",
+      user._id,
+      "User",
+      true,
+    );
+    return user;
+  },
+
+  /**
+   * 🔴 Suppression logique du compte utilisateur
+   */
+  async deleteUser(userId) {
+    const user = await User.findById(userId);
+    if (!user) throw new Error("Utilisateur introuvable.");
+
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    await user.save();
+
+    // Désactivation des appareils liés
+    await deviceService.deactivateDevices(userId);
+
+    await activityService.logActivity(
+      userId,
+      "delete_user",
+      user._id,
+      "User",
+      true,
+    );
+    return true;
+  },
+
+  /**
+   * ⚙️ Récupère les statistiques personnelles de l’utilisateur
+   */
+  async getUserStats(userId) {
+    const [romanCount, commentCount, recentActivity] = await Promise.all([
+      Roman.countDocuments({ author: userId, isDeleted: false }),
+      Comment.countDocuments({ author: userId, isDeleted: false }),
+      activityService.getUserLogs(userId, 5),
+    ]);
+
+    return {
+      totalRomans: romanCount,
+      totalComments: commentCount,
+      recentActivity,
+    };
+  },
+
+  /**
+   * 💬 Récupère les feedbacks envoyés par l’utilisateur
+   */
+  async getUserFeedbacks(userId) {
+    return feedbackService.getFeedbackByUser(userId);
+  },
+
+  /**
+   * 🧩 Met à jour les préférences utilisateur
+   */
+  async updatePreferences(userId, preferences) {
+    const user = await User.findById(userId);
+    if (!user) throw new Error("Utilisateur introuvable.");
+
+    user.preferences = { ...user.preferences, ...preferences };
+    await user.save();
+
+    await activityService.logActivity(
+      userId,
+      "update_preferences",
+      user._id,
+      "User",
+      true,
+    );
+    return user.preferences;
+  },
 };

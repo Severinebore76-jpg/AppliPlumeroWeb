@@ -1,23 +1,27 @@
-/**
- * 🗄️ Connexion MongoDB — AppliPlumeroWeb
- * --------------------------------------
- * Gère la connexion à MongoDB via Mongoose.
- * Récupère l'URI depuis le fichier .env (MONGO_URI).
- * Arrête le processus en cas d'échec critique.
- */
+// ============================================
+// 🗄️ Fichier : backend/config/db.js
+// ============================================
+// Gère la connexion à MongoDB via Mongoose.
+// Utilise la variable MONGO_URI du .env.
+// ============================================
 
 import mongoose from "mongoose";
 
 const connectDB = async () => {
+  const mongoURI = process.env.MONGO_URI;
+
+  console.log("🔍 Connexion MongoDB →", mongoURI || "❌ URI manquante");
+
+  if (!mongoURI || typeof mongoURI !== "string") {
+    console.error("❌ Erreur critique : MONGO_URI introuvable ou invalide.");
+    process.exit(1);
+  }
+
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const conn = await mongoose.connect(mongoURI);
 
     console.log(`🟢 MongoDB connecté : ${conn.connection.host}`);
 
-    // 🔹 Gestion des événements de connexion
     mongoose.connection.on("disconnected", () => {
       console.warn("⚠️ MongoDB déconnecté");
     });

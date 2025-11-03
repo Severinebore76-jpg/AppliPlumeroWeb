@@ -1,123 +1,120 @@
 import Roman from "../models/Roman.js";
-import slugify from "../utils/slugify.js";
-import { checkOwnershipOrAdmin } from "../utils/permissions.js";
+import Comment from "../models/Comment.js";
+import { calculateAverageRating } from "../services/ratingService.js";
+import { logActivity } from "../services/activityService.js";
+import { generateSlug } from "../utils/slugify.js";
 
-// ➤ Création
-export const createRoman = async (payload, authorId) => {
-  const slug = slugify(payload.title);
-  const exists = await Roman.findOne({ slug });
-  if (exists) {
-    const err = new Error("Un roman avec ce titre existe déjà.");
-    err.statusCode = 409;
-    throw err;
-  }
-  return Roman.create({ ...payload, slug, author: authorId });
-};
+export const romanService = {
+  async createRoman(data, userId) {
+    const { title, synopsis, language, genres, tags } = data;
 
-// ➤ Liste (avec pagination, recherche, filtrage)
-export const getAllRomans = async ({
-  q,
-  status,
-  author,
-  page = 1,
-  limit = 20,
-} = {}) => {
-  const filter = {};
-  if (q) filter.$text = { $search: q };
-  if (status) filter.status = status;
-  if (author) filter.author = author;
+    // Génération du slug unique
+    const slug = generateSlug(title);
+    const existing = await Roman.findOne({ slug, author: userId });
+    if (existing) throw new Error("Un roman portant ce titre existe déjà.");
 
-  const skip = (page - 1) * limit;
+    const roman = await Roman.create({
+      ...data,
+      author: userId,
+      slug,
+      stats: { views: 0, likes: 0, commentsCount: 0, chaptersCount: 0 },
+    });
 
-  const [items, total] = await Promise.all([
-    Roman.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
+    await logActivity(userId, "create_roman", roman._id, "Roman", true);
+    return roman;
+  },
+
+  async getRomanBySlug(slug) {
+    const roman = await Roman.findOne({ slug, isDeleted: false })
+      .populate("author", "username avatarUrl")
+      .lean();
+
+    if (!roman) throw new Error("Roman introuvable.");
+    return roman;
+  },
+
+  async getAllRomans(filters = {}) {
+    const query = { isDeleted: false };
+
+    if (filters.language) query.language = filters.language;
+    if (filters.visibility) query.visibility = filters.visibility;
+    if (filters.status) query.status = filters.status;
+
+    return Roman.find(query)
+      .sort({ publishedAt: -1 })
+      .select("title slug author stats coverImage status visibility")
+      .populate("author", "username avatarUrl")
+      .lean();
+  },
+
+  async updateRoman(id, updates, userId) {
+    const roman = await Roman.findById(id);
+    if (!roman) throw new Error("Roman introuvable.");
+    if (roman.author.toString() !== userId.toString())
+      throw new Error("Non autorisé à modifier ce roman.");
+
+    const protectedFields = ["author", "createdAt", "slug"];
+    protectedFields.forEach((f) => delete updates[f]);
+
+    Object.assign(roman, updates);
+    await roman.save();
+    await logActivity(userId, "update_roman", roman._id, "Roman", true);
+    return roman;
+  },
+
+  async deleteRoman(id, userId) {
+    const roman = await Roman.findById(id);
+    if (!roman) throw new Error("Roman introuvable.");
+    if (roman.author.toString() !== userId.toString())
+      throw new Error("Non autorisé à supprimer ce roman.");
+
+    roman.isDeleted = true;
+    roman.deletedAt = new Date();
+    roman.deletedBy = userId;
+    await roman.save();
+    await logActivity(userId, "delete_roman", roman._id, "Roman", true);
+    return roman;
+  },
+
+  async incrementViews(slug) {
+    return Roman.findOneAndUpdate(
+      { slug, isDeleted: false },
+      { $inc: { "stats.views": 1 } },
+      { new: true },
+    );
+  },
+
+  async refreshStats(romanId) {
+    const [commentCount, avgRating] = await Promise.all([
+      Comment.countDocuments({ roman: romanId, isDeleted: false }),
+      calculateAverageRating(romanId),
+    ]);
+
+    const roman = await Roman.findByIdAndUpdate(
+      romanId,
+      {
+        $set: {
+          "stats.commentsCount": commentCount,
+          "stats.ratings.average": avgRating.average,
+          "stats.ratings.count": avgRating.count,
+        },
+      },
+      { new: true },
+    );
+
+    return roman;
+  },
+
+  async searchRomans(query, limit = 10) {
+    const regex = new RegExp(query, "i");
+    return Roman.find({
+      $or: [{ title: regex }, { synopsis: regex }, { tags: regex }],
+      isDeleted: false,
+      status: "published",
+    })
       .limit(limit)
-      .populate("author", "name email"),
-    Roman.countDocuments(filter),
-  ]);
-
-  return {
-    results: items,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-};
-
-// ➤ Lecture
-export const getRomanBySlug = (slug) =>
-  Roman.findOne({ slug }).populate("author", "name email");
-
-// ➤ Mise à jour
-export const updateRoman = async (id, user, data) => {
-  const roman = await Roman.findById(id);
-  if (!roman) {
-    const err = new Error("Roman introuvable");
-    err.statusCode = 404;
-    throw err;
-  }
-
-  checkOwnershipOrAdmin(roman, user);
-
-  if (data.title) {
-    const newSlug = slugify(data.title);
-    const existing = await Roman.findOne({ slug: newSlug, _id: { $ne: id } });
-    if (existing) {
-      const err = new Error("Un roman avec ce titre existe déjà.");
-      err.statusCode = 409;
-      throw err;
-    }
-    roman.title = data.title;
-    roman.slug = newSlug;
-  }
-
-  [
-    "summary",
-    "tags",
-    "coverUrl",
-    "status",
-    "visibility",
-    "chapters",
-    "isFeatured",
-  ].forEach((k) => {
-    if (data[k] !== undefined) roman[k] = data[k];
-  });
-
-  await roman.save();
-  return roman;
-};
-
-// ➤ Suppression
-export const deleteRoman = async (id, user) => {
-  const roman = await Roman.findById(id);
-  if (!roman) {
-    const err = new Error("Roman introuvable");
-    err.statusCode = 404;
-    throw err;
-  }
-
-  checkOwnershipOrAdmin(roman, user);
-  await roman.deleteOne();
-  return true;
-};
-
-// 💎 Chapitres premium
-export const getPremiumChapters = async (slug, user) => {
-  const roman = await Roman.findOne({ slug });
-  if (!roman) {
-    const err = new Error("Roman introuvable");
-    err.statusCode = 404;
-    throw err;
-  }
-
-  if (!user || user.role !== "premium") {
-    const err = new Error("Accès réservé aux abonnés premium.");
-    err.statusCode = 403;
-    throw err;
-  }
-
-  return roman.chapters.filter((chapter) => chapter.isPremium);
+      .select("title slug author coverImage stats")
+      .populate("author", "username")
+      .lean();
+  },
 };
